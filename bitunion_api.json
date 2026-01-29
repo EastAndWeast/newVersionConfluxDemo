@@ -1,0 +1,3561 @@
+{
+    "schemes": [],
+    "swagger": "2.0",
+    "info": {
+        "description": "This is the BIM Finance Service API.",
+        "title": "BIM Finance Service API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8000",
+    "basePath": "/v1",
+    "paths": {
+        "/admin/finance/report/subsidy": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Report"
+                ],
+                "summary": "获取双周报",
+                "operationId": "GetSubsidyInviteAndTransferSummary",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "开始时间（RFC3339格式，例如 2023-01-01T00:00:00Z）",
+                        "name": "startTime",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "结束时间（RFC3339格式，例如 2023-01-15T00:00:00Z）",
+                        "name": "endTime",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.SubsidyReport"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/finance/report/summary": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Report"
+                ],
+                "summary": "获取周报",
+                "operationId": "GetInviteAndTransferSummary",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "开始时间（RFC3339格式，例如 2023-01-01T00:00:00Z）",
+                        "name": "startTime",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "结束时间（RFC3339格式，例如 2023-01-15T00:00:00Z）",
+                        "name": "endTime",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.SummaryReport"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/login": {
+            "post": {
+                "description": "校验地址签名，成功返回JWT。\n用户不存在时，会按注册规则自动创建用户。\n成功返回鉴权token，失败返回错误。\n签名方法（EIP-712 Typed Data）：\n1) 调用 /user/sign/nonce 获取 nonce。\n2) 组装 Typed Data：domain{name: \"BitUnion-Backend\", version: \"1.0.0\", chainId: 71(测试) / 1030(生产)}。\n3) types: EIP712Domain(name,version,chainId) + Body(nonce:string)，primaryType 为 Body。\n4) message: {nonce: \"\u003c步骤1返回的nonce\u003e\"}，使用 eth_signTypedData_v4 签名。\n5) 将签名 hex 放入请求体 signature 字段。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Login"
+                ],
+                "summary": "用户/管理员登录",
+                "parameters": [
+                    {
+                        "description": "登录信息",
+                        "name": "userLoginInfo",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.UserLoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "鉴权token",
+                        "schema": {
+                            "$ref": "#/definitions/jwtmiddleware.LoginResp"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/sign/nonce": {
+            "get": {
+                "description": "返回指定地址的 EIP712 nonce（登录签名所需）。\nnonce 存于服务端，不存在时会创建。\n响应返回 nonce 值；输入不合法返回错误。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Login"
+                ],
+                "summary": "获取登录Nonce",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "address",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.EIP712NonceResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/assets/files/kyc/{filepath}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "下载当前用户的KYC资源文件。幂等。",
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "Files"
+                ],
+                "summary": "下载KYC文件",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "文件路径",
+                        "name": "filepath",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/card": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "返回指定 extCardId 的卡详情，必要时更新余额；需本人卡片。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Card"
+                ],
+                "summary": "获取卡详情",
+                "operationId": "GetCard",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "extCardId",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.CardInfoItem"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/card/available": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "返回指定银行类型下开卡与法币兑换服务是否可用。\n未传 bankType 时默认 SMILESHOP；只读接口。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Card"
+                ],
+                "summary": "检查开卡与兑换可用性",
+                "operationId": "CheckCardAvailability",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "银行类型",
+                        "name": "bankType",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.CheckServiceAvailableResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/card/external": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "`supportedFiats` 必须且只能包含一种法币（用于确定必填银行字段）。\n`bankFields` 的 key 必须与 GET /card/external/fields?fiatType=XXX 返回的 `fields` 一致。\n`bankFields` 的 value 需符合该接口返回的 `fieldSpecs` 规则。\n成功后将外部卡绑定到当前用户。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Card"
+                ],
+                "summary": "创建外部卡",
+                "operationId": "CreateExternalCard",
+                "parameters": [
+                    {
+                        "description": "创建外部卡请求；bankFields 映射见描述",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.CreateExternalCardRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gin.H"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "解绑当前用户的外部卡。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Card"
+                ],
+                "summary": "删除外部卡",
+                "operationId": "DeleteExternalCard",
+                "parameters": [
+                    {
+                        "description": "删除外部卡请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.DeleteExternalCardRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gin.H"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/card/info": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "返回指定 extCardId 的敏感信息；需本人卡片。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Card"
+                ],
+                "summary": "获取卡敏感信息",
+                "operationId": "GetCardSensitiveInfo",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "extCardId",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.CardSensitiveInfoResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/card/limit": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取用户法币兑换额度信息，包括剩余额度、最小兑换金额和最大兑换金额。不同银行类型和法币类型有不同的限额规则。WASABI 中非 CNY 币种的 ExchangeFiatLimit 默认为 0。代表不检查。\n该接口为只读查询，返回当日剩余额度与最小/最大可兑换金额。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Exchange"
+                ],
+                "summary": "获取法币兑换限额",
+                "operationId": "GetExchangeFiatLimit",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "外部卡片ID，当bankType为SMILESHOP时必须提供并验证用户是否拥有该卡",
+                        "name": "extCardId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "USD",
+                        "description": "法币类型，支持: USD, JPY, KRW, CNY 等。默认值: USD",
+                        "name": "fiatType",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "SMILESHOP",
+                        "description": "银行类型，支持: SMILESHOP, WASABIDESK, LETSPAY 等。默认值: SMILESHOP",
+                        "name": "bankType",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功返回兑换额度信息",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.CardLimitResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误或fiatType/bankType格式不正确",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权访问",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/card/list": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "列出当前用户卡片；useCache=true 时余额可能使用缓存。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Card"
+                ],
+                "summary": "查询用户卡列表",
+                "operationId": "ListCards",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "使用缓存余额",
+                        "name": "useCache",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dtos.CardInfoItem"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/card/orders/exchange/compliance": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "当兑换订单需要合规（RFI）信息时使用。\n提交合规数据前先获取所需字段及当前值。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Exchange"
+                ],
+                "summary": "获取兑换合规详情",
+                "operationId": "GetExchangeComplianceDetail",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "internalOrderID",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ExchangeComplianceDetail"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "当订单需要合规信息时，先调用 GET 获取字段，再调用此接口。\n提交同一 internalOrderID 的 rfiInfos；成功后保存数据并可能更新订单状态。\nrfiValue 规则：下拉字段传 rfiFieldInfo.selectValues 中的 valueId；文件字段先走 /files/wasabi 上传并传回 fileId。\n允许部分提交，但最终必须补齐所有必填项以通过合规。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Exchange"
+                ],
+                "summary": "提交兑换合规信息",
+                "operationId": "SubmitExchangeCompliance",
+                "parameters": [
+                    {
+                        "description": "合规提交请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.SubmitComplianceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gin.H"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/card/orders/exchange/fiat": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "根据 internalOrderID 返回当前用户的兑换订单详情。\n响应包含手续费、状态及补贴信息（如适用）。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Exchange"
+                ],
+                "summary": "查询法币兑换订单",
+                "operationId": "GetExchangeFiatOrder",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "internalOrderID",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.QueryExchangeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "校验请求参数并创建法币兑换订单，成功返回内部订单ID。\n基础校验：bankType/fromToken/toFiat/amount/refPrice/traceID 必填；extCardId、cardNo、traceID、sourceOfFund、purposeOfRemittance 格式按字段校验（sourceOfFund、purposeOfRemittance 选项可通过 /v1/fields/exchange 获取）；refPrice 最多 18 位小数， 与实时汇率偏差超过 1% 则拒绝（price 可通过 /v1/price 获取）。\n金额精度：isCalcByToken=true 时 amount 最多 6 位小数；否则按 toFiat+bankType 的精度限制（可通过 /v1/card/orders/exchange/supported 获取）。\n银行差异：WASABIDESK 需 cardNo/sourceOfFund/purposeOfRemittance；非 WASABIDESK 需 extCardId 且卡片归属用户。\n业务校验：单笔金额需在配置 minExchangeAmount~maxExchangeAmount 范围内（可通过 /v1/card/limit 获取）；需要时校验日限额（WASABIDESK 非 CNY 免日限额，额度来自 defaultDailyExchangeLimit）；WASABIDESK 首笔订单若未成功则拒绝（ErrPendingFirstExchange）。\n折扣条件（仅 WASABIDESK 且 shouldPerformDiscount=true）：当按代币计价时 amount \u003e= 1000；按法币计价时，以汇率上浮 1% 计算的 tokenCost \u003e= 1000 ，满足则免固定费，否则 ErrPerformDiscountNotMatch。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Exchange"
+                ],
+                "summary": "创建法币兑换订单",
+                "operationId": "ExchangeFiat",
+                "parameters": [
+                    {
+                        "description": "法币兑换请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/services.ExchangeInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ExchagneResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/card/orders/exchange/fiat/firstNonFail": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "返回指定银行类型下第一笔非失败状态的兑换订单。\n若无订单则返回空响应。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Exchange"
+                ],
+                "summary": "获取首笔非失败兑换订单",
+                "operationId": "GetFirstNonFailExchangeFiatOrder",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "银行类型",
+                        "name": "bankType",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.QueryExchangeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/card/orders/exchange/fiat/list": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "按条件和分页列出当前用户的兑换订单。\n响应包含总数与列表。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Exchange"
+                ],
+                "summary": "查询法币兑换订单列表",
+                "operationId": "ListExchangeFiatOrders",
+                "parameters": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "enum": [
+                                "SMILESHOP",
+                                "WASABIDESK",
+                                "EXTERNAL",
+                                "LETSPAY"
+                            ],
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "BankTypes 按银行类型过滤订单；为空表示不过滤。",
+                        "name": "bankTypes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "enum": [
+                                "INIT",
+                                "SUCCESS",
+                                "REVERSE",
+                                "CANCELED",
+                                "PROCESSING",
+                                "FAILED",
+                                "NEED_COMPLIANCE_FILE",
+                                "WAIT_PROCESS",
+                                "COMPLIANCE_FILE_IN_REVIEW"
+                            ],
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Statuses 按兑换状态过滤订单；为空表示不过滤。",
+                        "name": "statuses",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页数量",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dtos.QueryExchangeResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/card/orders/exchange/supported": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "返回指定银行类型支持的法币与代币及精度规则。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Exchange"
+                ],
+                "summary": "查询支持的兑换法币与代币",
+                "operationId": "ListExchangeSupportedFiatsAndTokens",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "WASABIDESK",
+                        "name": "bankType",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ExchangeSupportedResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/fields/card": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "返回指定法币绑定外部卡所需的银行字段。幂等。\n响应包含 `fields`（必填字段名）和 `fieldSpecs`（每个字段的校验元数据）。\n创建外部卡时请使用返回字段名作为 `bankFields` 的 key。\nfieldSpecs 包含类型、最小/最大长度、正则规则和下拉选项；部分字段可能缺少 spec。\n`fiatType` 必填；不支持的法币会返回错误。\n也可以通过 /card/external/fields [get] 访问",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Fields"
+                ],
+                "summary": "获取外部卡银行字段要求",
+                "operationId": "GetExternalCardFields",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "法币代码（大写 ISO），如 USD、EUR、CNY",
+                        "name": "fiatType",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "必填字段列表与校验元数据",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ExternalCardFieldsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "fiatType 无效或不支持",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/fields/exchange": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "返回指定法币的 Wasabi purposeOfRemittance 与 sourceOfFund 字段规则。\n使用返回规则校验兑换订单的合规输入。\n`fiatType` 必填；不支持的法币会返回错误。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Fields"
+                ],
+                "summary": "获取兑换汇款字段",
+                "operationId": "GetExchangeFields",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "法币代码（大写 ISO），如 USD、EUR、CNY",
+                        "name": "fiatType",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ExchangeFieldsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/fields/kyc": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取某币种所需的个人信息字段，返回字段列表与校验规则（fieldSpecs）。\n前端提交 /user/kyc/fiat 时应使用该字段集合。\n也可以通过 /user/kyc/fiat/fields [get] 访问。幂等。\n返回字段名为模型字段名，fieldSpecs 包含字段校验规则。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Fields"
+                ],
+                "summary": "获取法币KYC资料字段",
+                "operationId": "GetUserFiatProfileFields",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "法币代码（大写 ISO），如 USD、EUR、CNY",
+                        "name": "fiatType",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.UserFiatProfileFieldsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/files/kyc": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "上传KYC文件并返回可用于KYC资料的公网URL。",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Files"
+                ],
+                "summary": "上传KYC文件",
+                "operationId": "UploadKycFile",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "文件",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.UploadFileResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/files/public": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "上传公开文件并返回公网URL。",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Files"
+                ],
+                "summary": "上传公开文件",
+                "operationId": "UploadPublicFile",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "文件",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.UploadFileResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/files/wasabi": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "上传Wasabi文件并返回后续引用的文件ID。",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Files"
+                ],
+                "summary": "上传Wasabi文件",
+                "operationId": "UploadWasabiFile",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "文件",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.UploadWasabiFileResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/oracle/price": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "返回代币或法币的 USD 价格，以及在请求币种下的反向价格。\ntoken 与 fiat 二选一，不能同时为空。\n两者同时设置会报错，兼容旧逻辑：当同时设置且 fiat=USD 时忽略 fiat。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Oracle"
+                ],
+                "summary": "获取价格",
+                "operationId": "GetPrice",
+                "parameters": [
+                    {
+                        "enum": [
+                            "USD",
+                            "CNY",
+                            "JPY",
+                            "KRW"
+                        ],
+                        "type": "string",
+                        "name": "fiat",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "USDT",
+                            "USDC",
+                            "CFX",
+                            "USDT0"
+                        ],
+                        "type": "string",
+                        "name": "token",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.PriceResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/balance": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "按币种（USDT、USDC、CFX、USDT0）汇总余额。幂等。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "获取用户余额汇总",
+                "responses": {
+                    "200": {
+                        "description": "键为币种枚举：USDT、USDC、CFX、USDT0",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "$ref": "#/definitions/models.Balance"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/channel": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "返回当前用户的渠道码；不存在则创建，创建后幂等。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Channel"
+                ],
+                "summary": "获取我的渠道码",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ChannelResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/kyc/fiat": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "聚合返回用户 baseProfile 与各币种信息。展示币种信息时优先展示 res.fiatProfile 中对应币种的信息。\n某字段是否可更改需要通过或运算获得， res.baseProfile.ZipCodeVerified || res.fiatProfiles[\"USD\"].ZipCodeVerified。 能否更改与币种有关。例如存在这样的情况：用户的邮编在 USD 下不可更改，但是允许在欧元中更改。\n返回的照片字段为可访问的文件 URL。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "KYC"
+                ],
+                "summary": "获取法币KYC资料",
+                "operationId": "GetUserFiatProfile",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.UserFiatProfileResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "通过该接口设置用户币种 KYC 信息（包括普通信息与照片url）\n字段校验（正则校验）：\n字段规则请先通过 GET /user/kyc/fiat/fields 获取。部分字段会有最小长度/最大长度/正则限制。部分字段为下拉选项。不满足相关校验规则会被拒绝。\n字段校验（已验证字段规则）：\n该接口会同时写入用户基础信息与指定币种信息，因此写入的字段如果与 baseProfile 或者 fiatProfile 中的已验证信息冲突。更新会被拒绝\n何时字段会被验证：\n当用户上传照片被 OCR 校验后，baseProfile 中 相关字段会设为已验证。\n当用户速汇成功后，fiatProfile 中 相关字段会设为已验证。\nOCR 校验：\n设置照片时会进行OCR校验（生产环境），要求照片相关 OCR 信息也存在（可以预先设置完成，也可以在同个请求内提供）\n如果进行了 OCR 校验，用户 baseProfile 中的相关个人信息与 photo 字段会设置为已验证。\n成功返回空响应，失败返回校验或权限错误。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "KYC"
+                ],
+                "summary": "设置法币KYC资料",
+                "operationId": "SetUserFiatProfile",
+                "parameters": [
+                    {
+                        "description": "法币KYC资料",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.MultiFiatUserInfo"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gin.H"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/kyc/fiat/completed": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "判断指定币种的 KYC 信息是否完成。包括用户信息是否完成以及照片是否上传。\n该接口同时会返回仍缺失的用户信息字段/照片字段。\n返回字段 infoCompleted/photoCompleted 及缺失字段列表。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "KYC"
+                ],
+                "summary": "获取法币KYC资料完成状态",
+                "operationId": "GetUserFiatProfileCompletedState",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "法币代码（大写 ISO），如 USD、EUR、CNY",
+                        "name": "fiatType",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.UserFiatProfileCompletedState"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/login": {
+            "post": {
+                "description": "校验地址签名，成功返回JWT。\n用户不存在时，会按注册规则自动创建用户。\n成功返回鉴权token，失败返回错误。\n签名方法（EIP-712 Typed Data）：\n1) 调用 /user/sign/nonce 获取 nonce。\n2) 组装 Typed Data：domain{name: \"BitUnion-Backend\", version: \"1.0.0\", chainId: 71(测试) / 1030(生产)}。\n3) types: EIP712Domain(name,version,chainId) + Body(nonce:string)，primaryType 为 Body。\n4) message: {nonce: \"\u003c步骤1返回的nonce\u003e\"}，使用 eth_signTypedData_v4 签名。\n5) 将签名 hex 放入请求体 signature 字段。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Login"
+                ],
+                "summary": "用户/管理员登录",
+                "parameters": [
+                    {
+                        "description": "登录信息",
+                        "name": "userLoginInfo",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.UserLoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "鉴权token",
+                        "schema": {
+                            "$ref": "#/definitions/jwtmiddleware.LoginResp"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/orders/withdraw": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "根据 internalOrderID 返回当前用户的提现订单。\n若订单属于其他用户则无权限。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Withdraw"
+                ],
+                "summary": "获取提现订单",
+                "operationId": "GetWithdrawOrder",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "internalOrderID",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.QueryWithdrawResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "创建提现订单并锁定对应余额。\n校验金额、币种和日限额；余额不足则失败。\n成功返回内部订单ID用于追踪。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Withdraw"
+                ],
+                "summary": "创建提现订单",
+                "operationId": "Withdraw",
+                "parameters": [
+                    {
+                        "description": "提现请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.WithdrawRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.WithdrawResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/orders/withdraw/limit": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "返回当前用户当日提现次数与剩余额度。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Withdraw"
+                ],
+                "summary": "获取提现限额",
+                "operationId": "GetWithdrawLimit",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.WithdrawLimitInfoResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/orders/withdraw/list": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "按分页列出当前用户提现订单。\n响应包含总数与列表。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Withdraw"
+                ],
+                "summary": "查询提现订单列表",
+                "operationId": "ListWithdrawOrders",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页数量",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dtos.QueryWithdrawResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/refresh-token": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取新的JWT",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Login"
+                ],
+                "summary": "刷新JWT",
+                "operationId": "RefreshUserAuth",
+                "responses": {
+                    "200": {
+                        "description": "刷新后的鉴权token",
+                        "schema": {
+                            "$ref": "#/definitions/jwtmiddleware.LoginResp"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/sign/nonce": {
+            "get": {
+                "description": "返回指定地址的 EIP712 nonce（登录签名所需）。\nnonce 存于服务端，不存在时会创建。\n响应返回 nonce 值；输入不合法返回错误。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Login"
+                ],
+                "summary": "获取登录Nonce",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "address",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.EIP712NonceResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/txn/info": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "根据 txnId 返回当前用户交易详情。幂等。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transaction"
+                ],
+                "summary": "获取交易详情",
+                "parameters": [
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "name": "txnId",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.TxnItem"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/txn/list": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "返回时间范围内的交易记录。卡交易可能会刷新；幂等。\n可选筛选：categories 限制交易类型（空=全部）；extCardIds 按外部卡ID过滤（空=不过滤）；bankTypes 按银行过滤（空=不过滤）。\n若 categories 为空或包含 CARD，列出前可能刷新卡交易。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transaction"
+                ],
+                "summary": "查询用户交易列表",
+                "parameters": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "enum": [
+                                "SMILESHOP",
+                                "WASABIDESK",
+                                "EXTERNAL",
+                                "LETSPAY"
+                            ],
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "为空或未传表示全部银行。",
+                        "name": "bankTypes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "enum": [
+                                "CARD",
+                                "DEPOSIT",
+                                "WITHDRAW",
+                                "EXCHANGE_FIAT",
+                                "EXCHANGE_TOKEN",
+                                "OPEN_CARD"
+                            ],
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "为空或未传表示全部类型。",
+                        "name": "categories",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 1577836800,
+                        "type": "integer",
+                        "description": "Unix 秒级时间戳(UTC)，\u003e= 2020-01-01 00:00:00",
+                        "name": "endAt",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "按外部卡ID过滤；为空或未传表示不过滤。",
+                        "name": "extCardIds",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "name": "limit",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1577836800,
+                        "type": "integer",
+                        "description": "Unix 秒级时间戳(UTC)，\u003e= 2020-01-01 00:00:00",
+                        "name": "startAt",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.TxnListResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ginutils.GinError"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "bank.RfiInfoRfiFieldInfo": {
+            "type": "object",
+            "properties": {
+                "fieldDescription": {
+                    "description": "字段描述或说明",
+                    "type": "string"
+                },
+                "fieldName": {
+                    "description": "需要的字段名（如 'ic_back'、'occupation'）",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/bankenums.WasabiRfiFieldName"
+                        }
+                    ]
+                },
+                "fieldTitle": {
+                    "description": "字段展示标题（如 'IC - Back'、'Occupation'）",
+                    "type": "string"
+                },
+                "fieldType": {
+                    "description": "字段类型（如 'file'、'select'）",
+                    "type": "string"
+                },
+                "required": {
+                    "description": "是否必填",
+                    "type": "boolean"
+                },
+                "selectValues": {
+                    "description": "fieldType 为 'select' 时的可选值",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/wasabi.ValueObject"
+                    }
+                },
+                "sorting": {
+                    "description": "展示排序",
+                    "type": "integer"
+                }
+            }
+        },
+        "bankenums.WasabiRfiFieldName": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9
+            ],
+            "x-enum-varnames": [
+                "WASABI_RFI_FIELDNAME_IC",
+                "WASABI_RFI_FIELDNAME_IC_FRONT",
+                "WASABI_RFI_FIELDNAME_IC_BACK",
+                "WASABI_RFI_FIELDNAME_WORK_PERMIT",
+                "WASABI_RFI_FIELDNAME_PASSPORT",
+                "WASABI_RFI_FIELDNAME_INVOICE",
+                "WASABI_RFI_FIELDNAME_SOURCE_OF_FUND",
+                "WASABI_RFI_FIELDNAME_RELATIONSHIP_PROOF",
+                "WASABI_RFI_FIELDNAME_OCCUPATION"
+            ]
+        },
+        "dtos.BaseProfile": {
+            "type": "object",
+            "required": [
+                "address",
+                "idPhoto",
+                "oneInchPhoto"
+            ],
+            "properties": {
+                "address": {
+                    "description": "用户地址 [长度最大200]",
+                    "type": "string"
+                },
+                "addressVerified": {
+                    "description": "地址是否已验证",
+                    "type": "boolean"
+                },
+                "chinaIdBackPhoto": {
+                    "description": "中国身份证背面照片",
+                    "type": "string"
+                },
+                "chinaIdBackPhotoVerified": {
+                    "description": "中国身份证背面照片是否已验证",
+                    "type": "boolean"
+                },
+                "chinaIdFrontPhoto": {
+                    "description": "中国身份证正面照片",
+                    "type": "string"
+                },
+                "chinaIdFrontPhotoVerified": {
+                    "description": "中国身份证正面照片是否已验证",
+                    "type": "boolean"
+                },
+                "chinaIdNo": {
+                    "description": "中国身份证号码",
+                    "type": "string"
+                },
+                "chinaIdNoVerified": {
+                    "description": "中国身份证号码是否已验证",
+                    "type": "boolean"
+                },
+                "country": {
+                    "description": "国家号(+86、 +855)",
+                    "type": "string"
+                },
+                "countryVerified": {
+                    "description": "国家是否已验证",
+                    "type": "boolean"
+                },
+                "dateOfBirth": {
+                    "description": "出生日期",
+                    "type": "string"
+                },
+                "dateOfBirthVerified": {
+                    "description": "出生日期是否已验证",
+                    "type": "boolean"
+                },
+                "firstName": {
+                    "description": "名",
+                    "type": "string"
+                },
+                "firstNameVerified": {
+                    "description": "名字是否已验证",
+                    "type": "boolean"
+                },
+                "idIssueCountryVerified": {
+                    "description": "证件签发国家是否已验证",
+                    "type": "boolean"
+                },
+                "idPhoto": {
+                    "description": "护照 url",
+                    "type": "string"
+                },
+                "idPhotoVerified": {
+                    "description": "护照是否已验证",
+                    "type": "boolean"
+                },
+                "lastName": {
+                    "description": "姓",
+                    "type": "string"
+                },
+                "lastNameVerified": {
+                    "description": "姓氏是否已验证",
+                    "type": "boolean"
+                },
+                "liveCity": {
+                    "description": "城市",
+                    "type": "string"
+                },
+                "liveCityVerified": {
+                    "description": "城市是否已验证",
+                    "type": "boolean"
+                },
+                "liveCountry": {
+                    "description": "居住国家",
+                    "type": "string"
+                },
+                "liveCountryVerified": {
+                    "description": "居住国家是否已验证",
+                    "type": "boolean"
+                },
+                "liveRegion": {
+                    "description": "居住地区 （与State基本一致）",
+                    "type": "string"
+                },
+                "liveRegionVerified": {
+                    "description": "居住地区是否已验证",
+                    "type": "boolean"
+                },
+                "liveState": {
+                    "description": "州/省",
+                    "type": "string"
+                },
+                "liveStateVerified": {
+                    "description": "州/省是否已验证",
+                    "type": "boolean"
+                },
+                "mail": {
+                    "description": "邮箱",
+                    "type": "string"
+                },
+                "mailVerified": {
+                    "description": "邮箱是否已验证",
+                    "type": "boolean"
+                },
+                "nationalityCode": {
+                    "description": "国籍编码: 中国 - CHN",
+                    "type": "string"
+                },
+                "nationalityCodeVerified": {
+                    "description": "国籍编码是否已验证",
+                    "type": "boolean"
+                },
+                "nativeFirstName": {
+                    "description": "母语名字",
+                    "type": "string"
+                },
+                "nativeFirstNameVerified": {
+                    "description": "母语名字是否已验证",
+                    "type": "boolean"
+                },
+                "nativeLastName": {
+                    "description": "母语姓氏",
+                    "type": "string"
+                },
+                "nativeLastNameVerified": {
+                    "description": "母语姓氏是否已验证",
+                    "type": "boolean"
+                },
+                "occupation": {
+                    "description": "职业",
+                    "type": "string"
+                },
+                "occupationVerified": {
+                    "description": "职业是否已验证",
+                    "type": "boolean"
+                },
+                "oneInchPhoto": {
+                    "description": "一寸照 url",
+                    "type": "string"
+                },
+                "oneInchPhotoVerified": {
+                    "description": "一寸照是否已验证",
+                    "type": "boolean"
+                },
+                "passportIssueCountry": {
+                    "description": "护照签发国家编码",
+                    "type": "string"
+                },
+                "passportIssueCountryVerified": {
+                    "description": "护照签发国家是否已验证",
+                    "type": "boolean"
+                },
+                "phone": {
+                    "description": "电话号码",
+                    "type": "string"
+                },
+                "phoneVerified": {
+                    "description": "电话号码是否已验证",
+                    "type": "boolean"
+                },
+                "pidNo": {
+                    "description": "护照号码",
+                    "type": "string"
+                },
+                "pidNoVerified": {
+                    "description": "证件号码是否已验证",
+                    "type": "boolean"
+                },
+                "pidType": {
+                    "description": "已废弃",
+                    "type": "string"
+                },
+                "pidTypeVerified": {
+                    "description": "证件类型是否已验证（已废弃）",
+                    "type": "boolean"
+                },
+                "sex": {
+                    "description": "性别(0: 男 1: 女)",
+                    "type": "string"
+                },
+                "sexVerified": {
+                    "description": "性别是否已验证",
+                    "type": "boolean"
+                },
+                "zipCode": {
+                    "description": "邮编",
+                    "type": "string"
+                },
+                "zipCodeVerified": {
+                    "description": "邮编是否已验证",
+                    "type": "boolean"
+                }
+            }
+        },
+        "dtos.CardInfoItem": {
+            "type": "object",
+            "properties": {
+                "bankAccountType": {
+                    "type": "string"
+                },
+                "bankBranchCode": {
+                    "type": "string"
+                },
+                "bankBranchName": {
+                    "type": "string"
+                },
+                "bankCity": {
+                    "type": "string"
+                },
+                "bankCode": {
+                    "type": "string"
+                },
+                "bankId": {
+                    "type": "string"
+                },
+                "bankName": {
+                    "type": "string"
+                },
+                "bankState": {
+                    "type": "string"
+                },
+                "bankSwiftCode": {
+                    "type": "string"
+                },
+                "bankType": {
+                    "type": "string",
+                    "example": "EXTERNAL"
+                },
+                "cardIdFirst4": {
+                    "type": "string"
+                },
+                "cardIdLast4": {
+                    "type": "string"
+                },
+                "cardNo": {
+                    "description": "仅外部卡会返回此字段",
+                    "type": "string"
+                },
+                "cardStatus": {
+                    "description": "bankType 为 BANK_TYPE_EXTERNAL 时不可用",
+                    "type": "string"
+                },
+                "currAvailAt": {
+                    "type": "string"
+                },
+                "currBalAt": {
+                    "type": "string"
+                },
+                "endDt": {
+                    "type": "string"
+                },
+                "extCardId": {
+                    "type": "string"
+                },
+                "fiat": {
+                    "description": "未来将废弃",
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "lockAt": {
+                    "type": "string"
+                },
+                "supportedFiats": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[\"USD\"]"
+                    ]
+                }
+            }
+        },
+        "dtos.CardLimitResponse": {
+            "type": "object",
+            "properties": {
+                "exchangeFiatLimit": {
+                    "type": "string"
+                },
+                "maxExchangeAmount": {
+                    "type": "string"
+                },
+                "minExchangeAmount": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.CardSensitiveInfoResponse": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "brandId": {
+                    "type": "string"
+                },
+                "cardId": {
+                    "type": "string"
+                },
+                "cardSta": {
+                    "type": "string"
+                },
+                "cvn2": {
+                    "type": "string"
+                },
+                "endDt": {
+                    "type": "string"
+                },
+                "startDt": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.ChannelResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.CheckServiceAvailableResponse": {
+            "type": "object",
+            "properties": {
+                "exchangeFiat": {
+                    "type": "boolean"
+                },
+                "openCard": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dtos.CreateExternalCardRequest": {
+            "type": "object",
+            "required": [
+                "cardNo",
+                "label",
+                "supportedFiats"
+            ],
+            "properties": {
+                "bankFields": {
+                    "description": "所选法币使用 GET /card/external/fields?fiatType=XXX 返回的 `fields` 作为 key。",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "cardNo": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "supportedFiats": {
+                    "type": "array",
+                    "maxItems": 1,
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[\"USD\"]"
+                    ]
+                }
+            }
+        },
+        "dtos.DeleteExternalCardRequest": {
+            "type": "object",
+            "required": [
+                "cardNo"
+            ],
+            "properties": {
+                "cardNo": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.EIP712NonceResp": {
+            "type": "object",
+            "properties": {
+                "nonce": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.ExchagneResponse": {
+            "type": "object",
+            "properties": {
+                "internalOrderID": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.ExchangeComplianceDetail": {
+            "type": "object",
+            "properties": {
+                "rfiInfos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.RfiInfo"
+                    }
+                }
+            }
+        },
+        "dtos.ExchangeFieldsResponse": {
+            "type": "object",
+            "properties": {
+                "purposeOfRemittance": {
+                    "$ref": "#/definitions/wasabifields.FieldSpec"
+                },
+                "sourceOfFund": {
+                    "$ref": "#/definitions/wasabifields.FieldSpec"
+                }
+            }
+        },
+        "dtos.ExchangeSupportedFiat": {
+            "type": "object",
+            "properties": {
+                "fiat": {
+                    "type": "string",
+                    "example": "CNY"
+                },
+                "precision": {
+                    "type": "integer",
+                    "example": 2
+                }
+            }
+        },
+        "dtos.ExchangeSupportedResponse": {
+            "type": "object",
+            "properties": {
+                "supportedFiats": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.ExchangeSupportedFiat"
+                    }
+                },
+                "supportedTokens": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.ExchangeSupportedToken"
+                    }
+                }
+            }
+        },
+        "dtos.ExchangeSupportedToken": {
+            "type": "object",
+            "properties": {
+                "precision": {
+                    "type": "integer",
+                    "example": 6
+                },
+                "token": {
+                    "type": "string",
+                    "example": "USDT"
+                }
+            }
+        },
+        "dtos.ExternalCardFieldsResponse": {
+            "type": "object",
+            "properties": {
+                "fieldSpecs": {
+                    "description": "每个字段的校验元数据（类型、长度/正则规则、下拉选项）。",
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/wasabifields.FieldSpec"
+                    }
+                },
+                "fields": {
+                    "description": "外部卡银行信息必填字段名（作为 bankFields 的 key）。",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[\"bankAccountNumber\"",
+                        "\"bankAccountType\"",
+                        "\"bankCode\"]"
+                    ]
+                }
+            }
+        },
+        "dtos.InvitationCount": {
+            "type": "object",
+            "properties": {
+                "invitation_code": {
+                    "type": "string"
+                },
+                "invitation_user_address": {
+                    "type": "string"
+                },
+                "invited_user_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dtos.MultiFiatUserInfo": {
+            "type": "object",
+            "required": [
+                "fiat"
+            ],
+            "properties": {
+                "address": {
+                    "type": "string",
+                    "maxLength": 200
+                },
+                "channelCode": {
+                    "type": "string"
+                },
+                "chinaIdBackPhoto": {
+                    "type": "string"
+                },
+                "chinaIdFrontPhoto": {
+                    "type": "string"
+                },
+                "chinaIdNo": {
+                    "type": "string"
+                },
+                "country": {
+                    "description": "国家号(+86、 +855)，与model中一致",
+                    "type": "string"
+                },
+                "dateOfBirth": {
+                    "type": "string"
+                },
+                "fiat": {
+                    "type": "string",
+                    "example": "USD"
+                },
+                "firstName": {
+                    "description": "当前正则处理中文会存在问题。但由于上传照片时会check，因此不检查也是没有问题的",
+                    "type": "string"
+                },
+                "idPhoto": {
+                    "description": "护照 url",
+                    "type": "string"
+                },
+                "lastName": {
+                    "type": "string"
+                },
+                "liveCity": {
+                    "type": "string"
+                },
+                "liveCountry": {
+                    "type": "string"
+                },
+                "liveRegion": {
+                    "type": "string"
+                },
+                "liveState": {
+                    "type": "string"
+                },
+                "mail": {
+                    "type": "string"
+                },
+                "nationalityCode": {
+                    "type": "string"
+                },
+                "nativeFirstName": {
+                    "type": "string"
+                },
+                "nativeLastName": {
+                    "type": "string"
+                },
+                "occupation": {
+                    "type": "string"
+                },
+                "passportIssueCountry": {
+                    "type": "string"
+                },
+                "phone": {
+                    "description": "与币种相关的字段",
+                    "type": "string"
+                },
+                "pidNo": {
+                    "description": "为了简化处理，这里过滤掉部分字段的检查\n不检查不会存在问题：上传照片会检查",
+                    "type": "string"
+                },
+                "sex": {
+                    "type": "string"
+                },
+                "zipCode": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.PriceResponse": {
+            "type": "object",
+            "properties": {
+                "currencyPriceInUSD": {
+                    "type": "string"
+                },
+                "fiat": {
+                    "type": "string",
+                    "example": "USD"
+                },
+                "token": {
+                    "type": "string",
+                    "example": "USDT"
+                },
+                "usdPriceInCurrency": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.QueryExchangeResponse": {
+            "type": "object",
+            "properties": {
+                "bankType": {
+                    "description": "\"\u003cstring\u003e\",",
+                    "type": "string",
+                    "example": "WASABIDESK"
+                },
+                "cardNoFirst4": {
+                    "description": "\"\u003cstring\u003e\",",
+                    "type": "string"
+                },
+                "cardNoLast4": {
+                    "description": "\"\u003cstring\u003e\",",
+                    "type": "string"
+                },
+                "createdTimestamp": {
+                    "description": "0",
+                    "type": "integer"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "extCardId": {
+                    "description": "\"\u003cstring\u003e\",",
+                    "type": "string"
+                },
+                "feeInFiat": {
+                    "description": "\"\", // 始终按币种展示",
+                    "type": "string"
+                },
+                "feeInUSD": {
+                    "description": "\"\", // 始终按 USD 展示",
+                    "type": "string"
+                },
+                "firstName": {
+                    "type": "string"
+                },
+                "fromAmount": {
+                    "description": "\"100\",",
+                    "type": "string"
+                },
+                "fromToken": {
+                    "description": "\"USDT\",",
+                    "type": "string",
+                    "example": "USDT"
+                },
+                "fromTokenPriceInUSD": {
+                    "description": "\"0.9999\",",
+                    "type": "string"
+                },
+                "internalOrderID": {
+                    "description": "\"\u003cstring\u003e\",",
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "lastName": {
+                    "type": "string"
+                },
+                "nativeFirstName": {
+                    "type": "string"
+                },
+                "nativeLastName": {
+                    "type": "string"
+                },
+                "price": {
+                    "description": "未来将废弃：fromTokenPriceInFiat",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "\"\u003cstring\u003e\", // 成功",
+                    "type": "string",
+                    "example": "SUCCESS"
+                },
+                "subsidyAmount": {
+                    "type": "string"
+                },
+                "subsidyCompleted": {
+                    "type": "boolean"
+                },
+                "timestamp": {
+                    "description": "0",
+                    "type": "integer"
+                },
+                "toAmount": {
+                    "description": "\"97.4\",",
+                    "type": "string"
+                },
+                "toFiat": {
+                    "description": "\"USD\",",
+                    "type": "string",
+                    "example": "USD"
+                },
+                "toFiatPriceInUSD": {
+                    "description": "\"0.9999\",",
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.QueryWithdrawResponse": {
+            "type": "object",
+            "required": [
+                "internalOrderID"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "string"
+                },
+                "chain": {
+                    "type": "string",
+                    "example": "espace-mainnet"
+                },
+                "hash": {
+                    "type": "string"
+                },
+                "internalOrderID": {
+                    "description": "FIXME: tag 中 form 改成 json，改完后需要通知前端",
+                    "type": "string"
+                },
+                "receiveAddress": {
+                    "type": "string"
+                },
+                "tokenType": {
+                    "type": "string",
+                    "example": "USDT"
+                },
+                "userID": {
+                    "description": "TODO: 移除 UserID 字段",
+                    "type": "integer"
+                }
+            }
+        },
+        "dtos.RemittanceAmountByInvitation": {
+            "type": "object",
+            "properties": {
+                "invitation_code": {
+                    "type": "string"
+                },
+                "invitation_user_address": {
+                    "type": "string"
+                },
+                "token_type": {
+                    "type": "string",
+                    "example": "USDT"
+                },
+                "total_remittance_amount": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.RemittanceAmountByUser": {
+            "type": "object",
+            "properties": {
+                "register_address": {
+                    "type": "string"
+                },
+                "token_type": {
+                    "type": "string",
+                    "example": "USDT"
+                },
+                "total_amount": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.RfiInfo": {
+            "type": "object",
+            "properties": {
+                "internalOrderID": {
+                    "description": "关联订单号（若父级已有可能冗余）",
+                    "type": "string"
+                },
+                "rfiFieldInfo": {
+                    "$ref": "#/definitions/bank.RfiInfoRfiFieldInfo"
+                },
+                "rfiId": {
+                    "description": "该 RFI 请求项的唯一 ID",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "该 RFI 项状态码（如 'pending_check'）",
+                    "type": "string",
+                    "example": "pending"
+                },
+                "statusStr": {
+                    "description": "RFI 状态显示文案",
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.SubmitComplianceRequest": {
+            "type": "object",
+            "required": [
+                "internalOrderID",
+                "rfiInfos"
+            ],
+            "properties": {
+                "internalOrderID": {
+                    "type": "string"
+                },
+                "rfiInfos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/wasabi.SubmitRfiRequestRfiInfos"
+                    }
+                }
+            }
+        },
+        "dtos.SubsidyReport": {
+            "type": "object",
+            "properties": {
+                "first_transaction_addresses": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "invitation_counts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.InvitationCount"
+                    }
+                },
+                "remittance_amount_by_invitation": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.RemittanceAmountByInvitation"
+                    }
+                },
+                "successful_remittance_users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.RemittanceAmountByUser"
+                    }
+                }
+            }
+        },
+        "dtos.SummaryReport": {
+            "type": "object",
+            "properties": {
+                "new_kyc_users": {
+                    "type": "integer"
+                },
+                "new_upload_photo_users": {
+                    "type": "integer"
+                },
+                "new_users_with_first_tx": {
+                    "type": "integer"
+                },
+                "total_deposit_amounts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.TokenAmount"
+                    }
+                },
+                "total_wasabi_remittance_amounts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.TokenAmount"
+                    }
+                }
+            }
+        },
+        "dtos.TokenAmount": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "string"
+                },
+                "token_type": {
+                    "type": "string",
+                    "example": "USDT"
+                }
+            }
+        },
+        "dtos.TxnCardData": {
+            "type": "object",
+            "properties": {
+                "balanceThen": {
+                    "type": "string"
+                },
+                "cardIdFirst4": {
+                    "type": "string"
+                },
+                "cardIdLast4": {
+                    "type": "string"
+                },
+                "extCardId": {
+                    "type": "string"
+                },
+                "fiatExchangeFee": {
+                    "type": "string"
+                },
+                "inInfo": {
+                    "type": "string"
+                },
+                "merchantNm": {
+                    "type": "string"
+                },
+                "outInfo": {
+                    "type": "string"
+                },
+                "serviceFee": {
+                    "type": "string"
+                },
+                "subcategory": {
+                    "type": "string",
+                    "example": "TOPUP"
+                },
+                "txnAmount": {
+                    "type": "string"
+                },
+                "txnFiat": {
+                    "type": "string",
+                    "example": "USD"
+                },
+                "txnStaCd": {
+                    "type": "string",
+                    "example": "SUCCESS"
+                }
+            }
+        },
+        "dtos.TxnDepositData": {
+            "type": "object",
+            "properties": {
+                "balanceThen": {
+                    "description": "状态非 SUCCESS 时可为空",
+                    "type": "string"
+                },
+                "chain": {
+                    "type": "string",
+                    "example": "espace-mainnet"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "SUCCESS",
+                        "PENDING"
+                    ],
+                    "example": "SUCCESS"
+                },
+                "txHash": {
+                    "type": "string"
+                },
+                "txnAmount": {
+                    "type": "string"
+                },
+                "txnToken": {
+                    "type": "string",
+                    "enum": [
+                        "USDT",
+                        "USDC",
+                        "CFX",
+                        "USDT0"
+                    ],
+                    "example": "USDT"
+                }
+            }
+        },
+        "dtos.TxnExchangeFiatData": {
+            "type": "object",
+            "properties": {
+                "bankType": {
+                    "type": "string",
+                    "example": "WASABIDESK"
+                },
+                "cardIdFirst4": {
+                    "type": "string"
+                },
+                "cardIdLast4": {
+                    "type": "string"
+                },
+                "cardNo": {
+                    "description": "只在 card.BankType 为 EXTERNAL 时返回",
+                    "type": "string"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "exchangeFeeInFiat": {
+                    "type": "string"
+                },
+                "exchangeFeeInUSD": {
+                    "type": "string"
+                },
+                "extCardId": {
+                    "description": "ToBalanceThen     string `json:\"toBalanceThen\"` // 已从划转订单中去掉，CARD交易中会有对应交易，可以查询到",
+                    "type": "string"
+                },
+                "firstName": {
+                    "type": "string"
+                },
+                "fromAmount": {
+                    "type": "string"
+                },
+                "fromBalanceThen": {
+                    "type": "string"
+                },
+                "fromPriceInUSD": {
+                    "type": "string"
+                },
+                "fromToken": {
+                    "type": "string",
+                    "enum": [
+                        "USDT",
+                        "USDC",
+                        "CFX",
+                        "USDT0"
+                    ],
+                    "example": "USDT"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "lastName": {
+                    "type": "string"
+                },
+                "nativeFirstName": {
+                    "type": "string"
+                },
+                "nativeLastName": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "SUCCESS",
+                        "PENDING",
+                        "FAIL"
+                    ],
+                    "example": "SUCCESS"
+                },
+                "subsidyAmount": {
+                    "type": "string"
+                },
+                "subsidyCompleted": {
+                    "type": "boolean"
+                },
+                "toAmount": {
+                    "type": "string"
+                },
+                "toFiat": {
+                    "type": "string",
+                    "enum": [
+                        "USD",
+                        "CNY",
+                        "JPY",
+                        "KRW"
+                    ],
+                    "example": "USD"
+                },
+                "toPriceInUSD": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.TxnItem": {
+            "type": "object",
+            "properties": {
+                "CARD": {
+                    "$ref": "#/definitions/dtos.TxnCardData"
+                },
+                "DEPOSIT": {
+                    "$ref": "#/definitions/dtos.TxnDepositData"
+                },
+                "EXCHANGE_FIAT": {
+                    "$ref": "#/definitions/dtos.TxnExchangeFiatData"
+                },
+                "OPEN_CARD": {
+                    "$ref": "#/definitions/dtos.TxnOpenCardData"
+                },
+                "WITHDRAW": {
+                    "$ref": "#/definitions/dtos.TxnWithdrawData"
+                },
+                "category": {
+                    "type": "string",
+                    "enum": [
+                        "CARD",
+                        "DEPOSIT",
+                        "WITHDRAW",
+                        "EXCHANGE_FIAT",
+                        "EXCHANGE_TOKEN",
+                        "OPEN_CARD"
+                    ],
+                    "example": "CARD"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "timestamp": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dtos.TxnListResp": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.TxnItem"
+                    }
+                }
+            }
+        },
+        "dtos.TxnOpenCardData": {
+            "type": "object",
+            "properties": {
+                "balanceThen": {
+                    "type": "string"
+                },
+                "fromAmount": {
+                    "type": "string"
+                },
+                "fromToken": {
+                    "description": "支付币种",
+                    "type": "string",
+                    "enum": [
+                        "USDT",
+                        "USDC",
+                        "CFX",
+                        "USDT0"
+                    ],
+                    "example": "USDT"
+                }
+            }
+        },
+        "dtos.TxnWithdrawData": {
+            "type": "object",
+            "properties": {
+                "balanceThen": {
+                    "type": "string"
+                },
+                "chain": {
+                    "type": "string",
+                    "example": "espace-mainnet"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "PENDING",
+                        "SUCCESS",
+                        "FAIL"
+                    ],
+                    "example": "PENDING"
+                },
+                "toAddress": {
+                    "type": "string"
+                },
+                "txHash": {
+                    "type": "string"
+                },
+                "txnAmount": {
+                    "type": "string"
+                },
+                "txnToken": {
+                    "type": "string",
+                    "enum": [
+                        "USDT",
+                        "USDC",
+                        "CFX",
+                        "USDT0"
+                    ],
+                    "example": "USDT"
+                }
+            }
+        },
+        "dtos.UploadFileResp": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.UploadWasabiFileResp": {
+            "type": "object",
+            "properties": {
+                "fileId": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.UserFiatProfileCompletedState": {
+            "type": "object",
+            "properties": {
+                "fiat": {
+                    "type": "string",
+                    "example": "USD"
+                },
+                "infoCompleted": {
+                    "type": "boolean"
+                },
+                "missingInfo": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "missingPhoto": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "photoCompleted": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dtos.UserFiatProfileFieldsResponse": {
+            "type": "object",
+            "properties": {
+                "fieldSpecs": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/wasabifields.FieldSpec"
+                    }
+                },
+                "fields": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dtos.UserFiatProfileResponse": {
+            "type": "object",
+            "properties": {
+                "baseProfile": {
+                    "$ref": "#/definitions/dtos.BaseProfile"
+                },
+                "fiatProfiles": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/dtos.BaseProfile"
+                    }
+                }
+            }
+        },
+        "dtos.UserLoginRequest": {
+            "type": "object",
+            "required": [
+                "registerAddress",
+                "signature"
+            ],
+            "properties": {
+                "isBimWallet": {
+                    "type": "boolean"
+                },
+                "registerAddress": {
+                    "type": "string"
+                },
+                "signature": {
+                    "type": "string"
+                },
+                "whitelistCode": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.WithdrawLimitInfo": {
+            "type": "object",
+            "properties": {
+                "max": {
+                    "type": "integer"
+                },
+                "remain": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dtos.WithdrawLimitInfoResp": {
+            "type": "object",
+            "properties": {
+                "dailyWithdrawOrderCount": {
+                    "$ref": "#/definitions/dtos.WithdrawLimitInfo"
+                }
+            }
+        },
+        "dtos.WithdrawRequest": {
+            "type": "object",
+            "required": [
+                "amount",
+                "receiver",
+                "traceID"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "string"
+                },
+                "chain": {
+                    "type": "string",
+                    "example": "espace-mainnet"
+                },
+                "receiver": {
+                    "type": "string"
+                },
+                "tokenType": {
+                    "type": "string",
+                    "example": "USDT"
+                },
+                "traceID": {
+                    "description": "TraceID 为客户端提供的唯一标识，用于请求追踪与幂等。",
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.WithdrawResponse": {
+            "type": "object",
+            "properties": {
+                "internalOrderID": {
+                    "type": "string"
+                }
+            }
+        },
+        "gin.H": {
+            "type": "object",
+            "additionalProperties": {}
+        },
+        "ginutils.GinError": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {},
+                "httpStatus": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "jwtmiddleware.LoginResp": {
+            "type": "object",
+            "properties": {
+                "expire": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "userType": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.Balance": {
+            "type": "object",
+            "properties": {
+                "finalized": {
+                    "description": "注意：受历史线上问题影响，该值可能为负。",
+                    "type": "string"
+                },
+                "locked": {
+                    "type": "string"
+                },
+                "unfinalized": {
+                    "type": "string"
+                }
+            }
+        },
+        "services.ExchangeInput": {
+            "type": "object",
+            "required": [
+                "amount",
+                "bankType",
+                "fromToken",
+                "refPrice",
+                "toFiat",
+                "traceID"
+            ],
+            "properties": {
+                "amount": {
+                    "description": "\"amount\":\"100\",",
+                    "type": "string",
+                    "example": "100"
+                },
+                "bankType": {
+                    "description": "\"bankType\":\"SMILESHOP\", 格式: string",
+                    "type": "string"
+                },
+                "cardNo": {
+                    "description": "\"cardNo\":\"\u003cstring\u003e\",",
+                    "type": "string"
+                },
+                "extCardId": {
+                    "description": "\"extCardId\":\"\u003cstring\u003e\",",
+                    "type": "string"
+                },
+                "fromToken": {
+                    "description": "\"fromToken\":\"USDT\", 格式: string",
+                    "type": "string"
+                },
+                "isCalcByToken": {
+                    "description": "\"isCalcByToken\": true,",
+                    "type": "boolean"
+                },
+                "purposeOfRemittance": {
+                    "type": "string"
+                },
+                "refPrice": {
+                    "description": "\"refPrice\": \"0.9999\", 只用于计算价差",
+                    "type": "string",
+                    "example": "0.9999"
+                },
+                "shouldPerformDiscount": {
+                    "description": "TODO: 建议重命名为 ErrIfNoDiscount",
+                    "type": "boolean"
+                },
+                "sourceOfFund": {
+                    "type": "string"
+                },
+                "toFiat": {
+                    "description": "\"toFiat\": \"USD\", 格式: string",
+                    "type": "string"
+                },
+                "traceID": {
+                    "description": "\"traceID\": \"1763516651522-uoeq6im7h\" // 相同的traceId重复请求时不会重复生成兑换订单",
+                    "type": "string"
+                }
+            }
+        },
+        "wasabi.SubmitRfiRequestRfiInfos": {
+            "type": "object",
+            "properties": {
+                "rfiId": {
+                    "description": "需要提交的资料项 ID (来自交易详情的 rfiInfos)",
+                    "type": "string"
+                },
+                "rfiValue": {
+                    "description": "资料内容 (文本或上传文件接口返回的 fileId)",
+                    "type": "string"
+                }
+            }
+        },
+        "wasabi.ValueObject": {
+            "type": "object",
+            "properties": {
+                "value": {
+                    "description": "显示值或描述",
+                    "type": "string"
+                },
+                "valueId": {
+                    "description": "值的 key 或 ID",
+                    "type": "string"
+                }
+            }
+        },
+        "wasabifields.FieldSpec": {
+            "type": "object",
+            "properties": {
+                "fieldDescription": {
+                    "description": "字段详细描述或提示信息",
+                    "type": "string"
+                },
+                "fieldTitle": {
+                    "description": "字段标题",
+                    "type": "string"
+                },
+                "fieldType": {
+                    "description": "字段类型",
+                    "type": "string"
+                },
+                "max": {
+                    "description": "最大长度/值 (适用于 input 类型)",
+                    "type": "integer"
+                },
+                "min": {
+                    "description": "最小长度/值 (适用于 input 类型)",
+                    "type": "integer"
+                },
+                "regex": {
+                    "description": "正则表达式校验规则 (适用于 input 类型)",
+                    "type": "string"
+                },
+                "selectValues": {
+                    "description": "可选值列表 (适用于 select 类型)",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/wasabi.ValueObject"
+                    }
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}

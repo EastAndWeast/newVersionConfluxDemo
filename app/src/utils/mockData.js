@@ -1,0 +1,22 @@
+export const mockOcrData = {
+    FirstName: 'JOHN',
+    LastName: 'DOE',
+    NativeFirstName: '约翰',
+    NativeLastName: '豆',
+    ChinaIdNo: '110101199001011234',
+    DateOfBirth: '1990-01-01',
+    Sex: '1',
+    NationalityCode: 'CHN',
+    PassportIssueCountry: 'CHN',
+    PidNo: 'G12345678',
+    Address: 'No. 123, West Changan Avenue, Beijing, China',
+    ZipCode: '100001',
+    LiveCity: 'Beijing',
+    LiveRegion: 'Beijing',
+    LiveCountry: 'CHN',
+    LiveAddress: 'No. 123, West Changan Avenue, Beijing, China',
+    Occupation: 'Software Engineer',
+    Mail: 'john.doe@example.com',
+    Phone: '13800138000',
+    Country: '+86'
+};
