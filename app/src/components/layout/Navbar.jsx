@@ -16,25 +16,27 @@ const Navbar = ({ activeTab, setActiveTab }) => {
     return (
         <nav className="glass-card" style={{ margin: 'var(--space-md)', padding: 'var(--space-sm) var(--space-lg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 'var(--space-md)', zIndex: 100 }}>
             <div className="nav-brand">
-                <h2 className="gradient-text" style={{ margin: 0, fontSize: '1.25rem', whiteSpace: 'nowrap' }}>BitUnion</h2>
+                <h2 className="gradient-text" style={{ margin: 0, fontSize: '1.25rem', whiteSpace: 'nowrap', fontWeight: '800' }}>BitUnion</h2>
             </div>
 
-            <div className="nav-tabs" style={{ display: 'flex', gap: 'var(--space-sm)', marginLeft: 'var(--space-md)', flexGrow: 1 }}>
+            <div className="nav-tabs">
                 {tabs.map((tab) => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={activeTab === tab.id ? 'btn-primary' : ''}
                         style={{
-                            background: activeTab === tab.id ? undefined : 'transparent',
-                            border: 'none',
+                            background: activeTab === tab.id ? undefined : 'rgba(255,255,255,0.03)',
+                            border: activeTab === tab.id ? 'none' : '1px solid rgba(255,255,255,0.05)',
                             color: activeTab === tab.id ? 'white' : 'var(--text-secondary)',
-                            padding: '0.4rem 0.8rem',
-                            borderRadius: 'var(--radius-md)',
+                            padding: '0.5rem 1rem',
+                            borderRadius: 'var(--radius-full)',
                             fontWeight: activeTab === tab.id ? '600' : '500',
                             whiteSpace: 'nowrap',
-                            fontSize: '0.9rem',
-                            flexShrink: 0
+                            fontSize: '0.85rem',
+                            flexShrink: 0,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
                         }}
                     >
                         {tab.label}
@@ -42,20 +44,20 @@ const Navbar = ({ activeTab, setActiveTab }) => {
                 ))}
             </div>
 
-            <div className="nav-actions" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', marginLeft: 'var(--space-md)' }}>
+            <div className="nav-actions">
                 {/* Language Toggle */}
                 <button
                     onClick={toggleLang}
                     style={{
-                        background: 'rgba(255,255,255,0.05)',
+                        background: 'rgba(255,255,255,0.08)',
                         border: '1px solid var(--glass-border)',
                         color: 'var(--text-primary)',
-                        padding: '0.4rem 0.8rem',
-                        borderRadius: 'var(--radius-sm)',
-                        fontSize: '0.8rem',
+                        padding: '0.4rem 1.2rem',
+                        borderRadius: 'var(--radius-md)',
+                        fontSize: '0.85rem',
                         fontWeight: 'bold',
                         cursor: 'pointer',
-                        minWidth: '40px'
+                        minWidth: '50px'
                     }}
                 >
                     {lang === 'zh' ? 'En' : '中'}
@@ -64,7 +66,16 @@ const Navbar = ({ activeTab, setActiveTab }) => {
                 {user && (
                     <button
                         onClick={logout}
-                        style={{ padding: '0.4rem 0.8rem', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--error)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                        style={{
+                            padding: '0.4rem 1rem',
+                            background: 'rgba(239, 68, 68, 0.15)',
+                            color: '#ff4d4d',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            borderRadius: 'var(--radius-md)',
+                            fontSize: '0.85rem',
+                            whiteSpace: 'nowrap',
+                            fontWeight: '600'
+                        }}
                     >
                         {t('nav.logout')}
                     </button>
