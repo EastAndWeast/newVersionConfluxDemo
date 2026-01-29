@@ -154,41 +154,64 @@ textarea {
 /* Responsive Utilities */
 @media (max-width: 768px) {
   :root {
-    --space-xl: 1.5rem;
-    --space-lg: 1rem;
+    --space-xl: 1.25rem;
+    --space-lg: 0.875rem;
   }
 
   body {
-    padding: 0.5rem;
+    padding: 0.25rem;
+  }
+
+  .container {
+    padding: 0 var(--space-md);
   }
 
   .glass-card {
-    padding: var(--space-lg) !important;
+    padding: var(--space-md) !important;
+    margin-left: 0.5rem !important;
+    margin-right: 0.5rem !important;
   }
 
   input,
   select,
   button {
     font-size: 16px !important;
-    /* Prevent iOS zoom */
   }
 
-  /* Grid adjustments */
-  div[style*="gridTemplateColumns: 1fr 1fr"],
-  div[style*="gridTemplateColumns: 1fr 2fr"] {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* Navbar wrap */
+  /* Navbar Mobile Fix */
   nav {
-    flex-direction: column;
-    gap: var(--space-md);
-    padding: 1rem !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 0.75rem !important;
+    gap: 0.75rem !important;
   }
 
   .nav-tabs {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    gap: 0.5rem !important;
+    padding-bottom: 4px;
+    margin-left: 0 !important;
+    scrollbar-width: none;
+    /* Firefox */
+  }
+
+  .nav-tabs::-webkit-scrollbar {
+    display: none;
+    /* Chrome/Safari */
+  }
+
+  .nav-brand {
+    font-size: 1.1rem !important;
+    text-align: center;
     width: 100%;
-    padding-bottom: 0.5rem;
+  }
+
+  .nav-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
   }
 }

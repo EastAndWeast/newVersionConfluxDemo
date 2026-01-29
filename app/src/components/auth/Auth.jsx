@@ -54,13 +54,13 @@ const Auth = () => {
 
             <form onSubmit={handleLogin}>
                 <div style={{ marginBottom: 'var(--space-lg)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 'var(--space-xs)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-xs)', flexWrap: 'wrap', gap: '4px' }}>
                         <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{t('auth.label')}</label>
                         <button
                             type="button"
                             onClick={handleAutoFill}
                             disabled={connecting}
-                            style={{ background: 'transparent', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', fontWeight: '600', padding: 0 }}
+                            style={{ background: 'transparent', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', fontWeight: '600', padding: 0, cursor: 'pointer' }}
                         >
                             {connecting ? t('common.loading') : t('auth.autofill')}
                         </button>
@@ -78,7 +78,8 @@ const Auth = () => {
                             borderRadius: 'var(--radius-md)',
                             color: 'white',
                             outline: 'none',
-                            boxSizing: 'border-box'
+                            boxSizing: 'border-box',
+                            fontSize: '1rem'
                         }}
                     />
                 </div>
